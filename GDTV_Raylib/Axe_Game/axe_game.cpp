@@ -2,5 +2,7 @@
 
 int main()
 {
-    InitWindow(350, 200, "Axe Game");
+    int width = 350, height = 200;
+
+    InitWindow(width, height, "Axe Game");
 }
