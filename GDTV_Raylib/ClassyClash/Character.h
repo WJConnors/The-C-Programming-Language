@@ -6,10 +6,19 @@
 
 class Character : public BaseCharacter
 {
-        public:
+    private:
+        int screenWidth{};
+        int screenHeight{};
+        Texture2D weapon{(LoadTexture("characters/weapon_sword.png"))};
+        Rectangle weaponRec{};
+        float health{100.0f};
+    public:
         Character(int screenWidth, int screenHeight);
         virtual void tick(float deltaTime) override;
-        Vector2 getScreenPos() { return screenPos; }
+        virtual Vector2 getScreenPos() override;
+        Rectangle getWeaponRec() { return weaponRec; }
+        float getHealth() const { return health; }
+        void takeDamage(float damage);
 };
 
 #endif

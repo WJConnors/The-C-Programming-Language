@@ -15,12 +15,21 @@ Enemy::Enemy(Vector2 pos, Texture2D idle_Texture, Texture2D run_Texture)
 
 void Enemy::tick(float deltaTime)
 {
-    Vector2 toTarget{Vector2Subtract(target->getScreenPos(), screenPos)};
-    toTarget = Vector2Normalize(toTarget);
-    Vector2Scale(toTarget, speed);
-    worldPos = Vector2Add(worldPos, toTarget);
+    if(!getAlive()) return;
 
-    screenPos = Vector2Subtract(worldPos, target->getWorldPos());
+    velocity = {Vector2Subtract(target->getScreenPos(), getScreenPos())};
+
+    if (Vector2Length(velocity) < radius) velocity = {};
 
     BaseCharacter::tick(deltaTime);
+
+    if(CheckCollisionRecs(getCollisionRec(), target->getCollisionRec()))
+    {
+        target->takeDamage(dps * deltaTime);
+    }
+}
+
+Vector2 Enemy::getScreenPos()
+{
+    return Vector2Subtract(worldPos, target->getWorldPos());
 }
