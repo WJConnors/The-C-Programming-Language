@@ -1,65 +1,8 @@
 #include "raylib.h"
 #include "raymath.h"
-
-class Character
-{
-    private:
-        Texture2D texture{(LoadTexture("characters/knight_idle_spritesheet.png"))};
-        Texture2D idle{(LoadTexture("characters/knight_idle_spritesheet.png"))};
-        Texture2D run{(LoadTexture("characters/knight_run_spritesheet.png"))};
-        Vector2 screenPos{0.0f, 0.0f};
-        Vector2 worldPos{0.0f, 0.0f};
-
-        float rightLeft{1.0f};
-        float runningTime{0.0f};
-        int frame{0};
-        const int maxFrames{6};
-        const float updateTime{1.0f/12.0f};
-
-        const float speed{4.0f};
-
-
-    public:
-        Vector2 getWorldPos() { return worldPos; }
-        void setScreenPos(Vector2 pos);
-        void tick(float deltaTime);
-};
-
-void Character::setScreenPos(Vector2 window)
-{
-    screenPos = {(float)window.x / 2.0f -  4.0f * (0.5f * (float)texture.width/6), (float)window.y / 2.0f - 4.0f * (0.5f * (float)texture.height)};
-}
-
-void Character::tick(float deltaTime)
-{
-    Vector2 direction{};
-    if (IsKeyDown(KEY_A)) direction.x -= 1;
-    if (IsKeyDown(KEY_D)) direction.x += 1;
-    if (IsKeyDown(KEY_W)) direction.y -= 1;
-    if (IsKeyDown(KEY_S)) direction.y += 1;
-    if (Vector2Length(direction) != 0)
-    {
-        worldPos = Vector2Add(worldPos, Vector2Scale(Vector2Normalize(direction), speed));
-        rightLeft = direction.x < 0.0f ? -1.0f : 1.0f;
-        texture = run;
-    }
-    else
-    {
-        texture = idle;
-    }
-
-    runningTime += deltaTime;
-    if (runningTime >= updateTime)
-    {
-        runningTime = 0.0f;
-        frame++;
-        if (frame > maxFrames) frame = 0;
-    }
-
-    Rectangle source = {frame * (float)texture.width/6, 0.0f, rightLeft * (float)texture.width/6, (float)texture.height};
-    Rectangle dest = {screenPos.x, screenPos.y, 4.0f * (float)texture.width/6, 4.0f * (float)texture.height};
-    DrawTexturePro(texture, source, dest, Vector2{0.0f, 0.0f}, 0.0f, WHITE);
-}
+#include "Character.h"
+#include "Prop.h"
+#include "Enemy.h"
 
 int main()
 {
@@ -70,9 +13,17 @@ int main()
 
     Texture2D worldMap = LoadTexture("nature_tileset/OpenWorldMap24x24.png");
     Vector2 mapPos{0.0, 0.0};
+    const float mapScale = 4.0f;
 
-    Character knight;
-    knight.setScreenPos({screenWidth, screenHeight});
+    Character knight{screenWidth, screenHeight};
+
+    Enemy goblin {Vector2{500.0f, 500.0f}, LoadTexture("characters/goblin_idle_spritesheet.png"), LoadTexture("characters/goblin_run_spritesheet.png")};
+    goblin.setTarget(&knight);
+
+    Prop props[]{
+        Prop{Vector2{200, 500}, LoadTexture("nature_tileset/Rock.png")},
+        Prop{Vector2{500, 200}, LoadTexture("nature_tileset/Log.png")}
+    };
 
     SetTargetFPS(60); // Set our game to run at 60 frames-per-second
 
@@ -83,10 +34,33 @@ int main()
         ClearBackground(WHITE);        
 
         mapPos = Vector2Scale(knight.getWorldPos(), -1.0f);
+        
+        DrawTextureEx(worldMap, mapPos, 0, mapScale, WHITE);
 
-        DrawTextureEx(worldMap, mapPos, 0, 4, WHITE);
+        for (const Prop& prop : props)
+        {
+            prop.Render(knight.getWorldPos());
+        }
 
         knight.tick(GetFrameTime());
+        
+
+        if (knight.getWorldPos().x < 0.0f ||
+            knight.getWorldPos().y < 0.0f ||
+            knight.getWorldPos().x + screenWidth >  worldMap.width * mapScale||
+            knight.getWorldPos().y + screenHeight > worldMap.height * mapScale)
+        {
+            knight.undoMovement();
+        }
+        for (const Prop& prop : props)
+        {
+            if (CheckCollisionRecs(knight.getCollisionRec(), prop.getCollisionRec(knight.getWorldPos())))
+            {
+                knight.undoMovement();
+            }
+        }
+        
+        goblin.tick(GetFrameTime());
 
         EndDrawing();
     }
